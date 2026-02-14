@@ -5,522 +5,251 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A Valentine's Quest</title>
-    <meta name="description"
-        content="A pixel-art Valentine's Day adventure game. Find the perfect rose for your Valentine!">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
 
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <!-- Google Fonts: Press Start 2P -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
         body {
-            background: #0f0a1a;
+            background-color: #1a1a1a;
             font-family: 'Press Start 2P', cursive;
             overflow: hidden;
             touch-action: none;
-            -webkit-user-select: none;
-            user-select: none;
-            height: 100vh;
-            height: 100dvh;
         }
 
+        /* Canvas Styling */
         canvas {
             image-rendering: pixelated;
-            display: block;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
         }
 
+        /* CRT Overlay */
         .scanlines {
-            background: repeating-linear-gradient(to bottom, transparent 0px, transparent 2px, rgba(0, 0, 0, 0.04) 2px, rgba(0, 0, 0, 0.04) 4px);
-            position: absolute;
-            inset: 0;
-            pointer-events: none;
-            z-index: 5;
-        }
-
-        .game-outer {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            padding: 8px;
-            gap: 6px;
-        }
-
-        #game-wrapper {
-            position: relative;
-            width: 100%;
-            max-width: 720px;
-            aspect-ratio: 16/10;
-            background: #000;
-            border-radius: 12px;
-            overflow: hidden;
-            border: 3px solid #3b2d5e;
-            box-shadow: 0 0 40px rgba(139, 92, 246, 0.25), inset 0 0 20px rgba(0, 0, 0, 0.5);
-            flex-shrink: 1;
-            min-height: 0;
-        }
-
-        #gameCanvas {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* HUD */
-        .hud {
+            background: linear-gradient(to bottom,
+                    rgba(255, 255, 255, 0),
+                    rgba(255, 255, 255, 0) 50%,
+                    rgba(0, 0, 0, 0.05) 50%,
+                    rgba(0, 0, 0, 0.05));
+            background-size: 100% 4px;
             position: absolute;
             top: 0;
             left: 0;
             right: 0;
-            z-index: 15;
-            padding: 6px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            bottom: 0;
             pointer-events: none;
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+            z-index: 10;
         }
 
-        .hud-item {
-            font-size: 8px;
-            color: #fff;
-            text-shadow: 1px 1px 0 #000;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Dialogue */
+        /* UI Styling */
         .dialogue-box {
-            border: 3px solid #c084fc;
-            background: rgba(30, 15, 60, 0.95);
-            box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
-            text-shadow: 1px 1px 0 #000;
-            backdrop-filter: blur(4px);
-            border-radius: 8px;
+            border: 4px solid #fff;
+            background-color: #2563eb;
+            box-shadow: 0 4px 0px #1e3a8a;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        .dialogue-box p {
+            white-space: pre-wrap;
+            line-height: 1.6;
         }
 
         .btn-retro {
             border: 2px solid #fff;
-            box-shadow: 0 3px 0px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 0px rgba(0, 0, 0, 0.5);
             transition: transform 0.1s, box-shadow 0.1s;
-            cursor: pointer;
         }
 
         .btn-retro:active {
-            transform: translateY(3px);
+            transform: translateY(4px);
             box-shadow: 0 0 0;
         }
 
-        /* Mobile Controls */
-        .mobile-controls {
-            display: none;
-            width: 100%;
-            max-width: 720px;
-            padding: 0 8px;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .dpad {
-            position: relative;
-            width: 110px;
-            height: 110px;
-        }
-
-        .dpad button {
-            position: absolute;
-            width: 36px;
-            height: 36px;
-            border-radius: 6px;
-            background: rgba(139, 92, 246, 0.5);
-            border: 2px solid rgba(196, 132, 252, 0.6);
-            color: #fff;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(4px);
-            transition: background 0.1s;
-        }
-
-        .dpad button:active {
-            background: rgba(139, 92, 246, 0.9);
-        }
-
-        .dpad .up {
-            top: 0;
-            left: 37px;
-        }
-
-        .dpad .down {
-            bottom: 0;
-            left: 37px;
-        }
-
-        .dpad .left {
-            top: 37px;
-            left: 0;
-        }
-
-        .dpad .right {
-            top: 37px;
-            right: 0;
-        }
-
-        .action-btn {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            font-size: 18px;
-            font-weight: bold;
-            background: rgba(236, 72, 153, 0.6);
-            border: 3px solid rgba(244, 114, 182, 0.7);
-            color: #fff;
-            backdrop-filter: blur(4px);
-            transition: background 0.1s;
-        }
-
-        .action-btn:active {
-            background: rgba(236, 72, 153, 0.95);
-        }
-
-        /* Title Screen */
-        #title-screen {
-            position: absolute;
-            inset: 0;
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: radial-gradient(ellipse at center, #1e1030 0%, #0f0a1a 100%);
-        }
-
-        #title-screen h1 {
-            color: #ec4899;
-            font-size: clamp(16px, 5vw, 32px);
-            text-shadow: 0 0 20px rgba(236, 72, 153, 0.6);
-        }
-
-        #title-screen .subtitle {
-            color: #c084fc;
-            font-size: clamp(8px, 2.5vw, 12px);
-            margin-top: 12px;
-        }
-
-        .start-btn {
-            margin-top: 32px;
-            padding: 12px 32px;
-            font-size: clamp(10px, 2.5vw, 14px);
-            background: linear-gradient(135deg, #ec4899, #a855f7);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            animation: pulse-glow 2s infinite;
-            font-family: 'Press Start 2P', cursive;
-            box-shadow: 0 4px 20px rgba(236, 72, 153, 0.4);
-        }
-
-        @keyframes pulse-glow {
-
-            0%,
-            100% {
-                box-shadow: 0 4px 20px rgba(236, 72, 153, 0.4);
-            }
-
-            50% {
-                box-shadow: 0 4px 30px rgba(236, 72, 153, 0.8);
-            }
-        }
-
-        .float-heart {
-            position: absolute;
-            animation: floatUp linear infinite;
-            opacity: 0.3;
-            font-size: 20px;
-        }
-
-        @keyframes floatUp {
-            0% {
-                transform: translateY(100vh) rotate(0deg);
-                opacity: 0.3;
-            }
-
-            100% {
-                transform: translateY(-20vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .mobile-controls {
-                display: flex;
-            }
-
-            #game-wrapper {
-                border-radius: 8px;
-                border-width: 2px;
-            }
-
-            .game-outer {
-                padding: 4px;
-                gap: 4px;
-                justify-content: flex-start;
-                padding-top: max(4px, env(safe-area-inset-top));
-            }
-        }
-
-        @media (max-height: 500px) {
-            .mobile-controls {
-                display: flex;
-            }
-
-            .dpad {
-                width: 90px;
-                height: 90px;
-            }
-
-            .dpad button {
-                width: 28px;
-                height: 28px;
-                font-size: 11px;
-            }
-
-            .dpad .up {
-                left: 31px;
-            }
-
-            .dpad .down {
-                left: 31px;
-            }
-
-            .dpad .right {
-                right: 0;
-            }
-
-            .dpad .left {
-                left: 0;
-            }
-
-            .dpad .down {
-                bottom: 0;
-            }
-
-            .dpad .left,
-            .dpad .right {
-                top: 31px;
-            }
-
-            .action-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 14px;
-            }
-        }
-
-        @media (min-width: 641px) and (pointer: fine) {
-            .mobile-controls {
-                display: none !important;
-            }
-        }
-
-        /* Choice / Fail overlay */
-        .fail-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.95);
-            z-index: 60;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .fail-card {
-            background: linear-gradient(135deg, #450a0a, #7f1d1d);
-            border: 3px solid #ef4444;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 380px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 0 40px rgba(239, 68, 68, 0.3);
-        }
-
-        .proposal-overlay {
-            position: absolute;
-            inset: 0;
-            z-index: 30;
-            background: rgba(15, 10, 26, 0.92);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .proposal-card {
-            background: linear-gradient(135deg, #fce7f3, #fdf2f8);
-            border: 3px solid #ec4899;
-            border-radius: 16px;
-            padding: 24px;
-            max-width: 360px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 0 50px rgba(236, 72, 153, 0.4);
+        /* Choice Menu */
+        .choice-menu {
+            background-color: #ef4444;
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
     </style>
 </head>
 
-<body>
-    <div class="game-outer">
-        <div id="game-wrapper">
-            <canvas id="gameCanvas"></canvas>
-            <div class="scanlines"></div>
+<body class="h-screen w-screen flex items-center justify-center bg-gray-900 text-white relative">
 
-            <!-- HUD -->
-            <div class="hud" id="hud">
-                <div class="hud-item" id="hud-stage">STAGE 1</div>
-                <div class="hud-item" id="hud-inventory"></div>
+    <div id="game-wrapper"
+        class="relative w-full max-w-2xl aspect-video bg-black rounded-xl overflow-hidden border-4 border-gray-700 shadow-2xl">
+        <canvas id="gameCanvas" class="w-full h-full block"></canvas>
+        <div class="scanlines"></div>
+
+        <!-- Dialogue Box -->
+        <div id="dialogue-container" class="absolute bottom-6 left-6 right-6 hidden z-20">
+            <div class="dialogue-box p-4 rounded-lg text-xs md:text-sm min-h-[80px]">
+                <p id="dialogue-text"></p>
+                <div id="dialogue-arrow" class="text-right mt-2 animate-pulse text-[10px] text-yellow-300 hidden">▼
+                    PRESS SPACE</div>
             </div>
+        </div>
 
-            <!-- Title Screen -->
-            <div id="title-screen">
-                <div style="font-size:48px;margin-bottom:16px;">🌹</div>
-                <h1>A Valentine's Quest</h1>
-                <p class="subtitle">Find the perfect rose</p>
-                <button class="start-btn" id="btn-start">START GAME</button>
-                <p style="color:#6b7280;font-size:8px;margin-top:24px;">
-                    <span class="hidden sm:inline">WASD / Arrows to move · Space to interact</span>
-                    <span class="sm:hidden">Use D-Pad & Action button</span>
+        <!-- Interaction Choice Buttons (Yes/No for Stranger) -->
+        <div id="interaction-choice"
+            class="absolute bottom-24 left-1/2 transform -translate-x-1/2 flex gap-8 hidden z-30 w-full justify-center px-4">
+            <button id="btn-choice-yes"
+                class="btn-retro bg-green-500 text-white px-6 py-3 rounded text-xs hover:bg-green-600">YES</button>
+            <button id="btn-choice-no"
+                class="btn-retro bg-red-500 text-white px-6 py-3 rounded text-xs hover:bg-red-600">NO</button>
+        </div>
+
+        <!-- Restart Menu (Mission Failed) -->
+        <!-- CHANGED: absolute -> fixed, z-50 to make it cover the entire screen/viewport -->
+        <div id="choice-container" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center hidden">
+            <div
+                class="choice-menu p-8 rounded-xl text-center max-w-md w-full border-4 border-red-500 bg-red-900/90 shadow-2xl">
+                <h3 class="text-white text-3xl font-bold mb-6 text-red-500 drop-shadow-md animate-pulse">MISSION FAILED!
+                </h3>
+
+                <img src="https://media1.tenor.com/m/g0TdYZ1BMpgAAAAd/ishowspeed-meme.gif" alt="Failed"
+                    class="w-full rounded-lg mb-6 border-4 border-white shadow-lg">
+
+                <p class="text-white text-xl mb-8 font-bold text-yellow-300 drop-shadow-sm">"ooo gitu kasi ke cowo lain"
                 </p>
-            </div>
 
-            <!-- Dialogue -->
-            <div id="dialogue-container" class="absolute bottom-3 left-3 right-3 hidden z-20">
-                <div class="dialogue-box p-3 text-[9px] sm:text-xs min-h-[60px] leading-relaxed">
-                    <p id="dialogue-text"></p>
-                    <div id="dialogue-arrow" class="text-right mt-1 animate-pulse text-[8px] text-yellow-300 hidden">▼
-                        CONTINUE</div>
-                </div>
-            </div>
-
-            <!-- Yes/No Choice -->
-            <div id="interaction-choice"
-                class="absolute bottom-[72px] left-0 right-0 flex gap-4 hidden z-30 justify-center px-4">
-                <button id="btn-choice-yes"
-                    class="btn-retro bg-green-500 text-white px-5 py-2 rounded text-[10px] hover:bg-green-600">YES</button>
-                <button id="btn-choice-no"
-                    class="btn-retro bg-red-500 text-white px-5 py-2 rounded text-[10px] hover:bg-red-600">NO</button>
-            </div>
-
-            <!-- Interaction Hint -->
-            <div id="interaction-hint"
-                class="absolute top-10 left-1/2 -translate-x-1/2 bg-white/90 text-black px-3 py-1 rounded-full border-2 border-purple-400 hidden z-20 text-[8px] shadow-lg animate-bounce backdrop-blur">
-                PRESS SPACE
-            </div>
-
-            <!-- Proposal Modal -->
-            <div id="modal-proposal" class="proposal-overlay hidden">
-                <div class="proposal-card">
-                    <div class="text-4xl mb-4">🌹</div>
-                    <h1 class="text-base sm:text-xl text-pink-600 font-bold mb-1">Dear Chessa,</h1>
-                    <h2 class="text-xs sm:text-sm mb-3 text-pink-500 font-bold">I found this for you...</h2>
-                    <p class="text-[9px] sm:text-xs mb-6 leading-5 text-pink-900">Will you be my Valentine?</p>
-                    <div class="flex justify-center gap-6 relative h-10 w-full">
-                        <button id="btn-yes"
-                            class="btn-retro bg-green-500 text-white px-5 py-2 rounded text-[10px] hover:bg-green-600 transition-transform">YES!</button>
-                        <button id="btn-no"
-                            class="btn-retro bg-red-500 text-white px-5 py-2 rounded text-[10px] hover:bg-red-600 absolute right-6 transition-all">NO</button>
-                    </div>
+                <div class="flex justify-center gap-4">
+                    <button id="btn-restart-yes"
+                        class="btn-retro bg-green-500 text-white px-8 py-4 rounded-lg text-lg w-full hover:bg-green-600 hover:scale-105 transition-transform font-bold shadow-lg">RESTART</button>
                 </div>
             </div>
         </div>
 
-        <!-- Mobile Controls OUTSIDE wrapper for better layout -->
-        <div class="mobile-controls" id="mobile-controls">
-            <div class="dpad">
-                <button class="up" id="btn-up">▲</button>
-                <button class="down" id="btn-down">▼</button>
-                <button class="left" id="btn-left">◀</button>
-                <button class="right" id="btn-right">▶</button>
-            </div>
-            <button class="action-btn" id="btn-action">A</button>
+        <!-- Interaction Hint -->
+        <div id="interaction-hint"
+            class="absolute top-6 left-1/2 transform -translate-x-1/2 bg-white text-black px-4 py-2 rounded-full border-2 border-black hidden z-20 text-[10px] shadow-lg animate-bounce">
+            PRESS SPACE
         </div>
-    </div>
 
-    <!-- Fail Overlay (outside wrapper so it covers everything) -->
-    <div id="choice-container" class="fail-overlay hidden">
-        <div class="fail-card">
-            <h3 class="text-red-400 text-lg sm:text-2xl font-bold mb-4 animate-pulse">MISSION FAILED!</h3>
-            <img src="https://media1.tenor.com/m/g0TdYZ1BMpgAAAAd/ishowspeed-meme.gif" alt="Failed"
-                class="w-full rounded-lg mb-4 border-2 border-red-500">
-            <p class="text-yellow-300 text-xs sm:text-sm mb-6 font-bold">"ooo gitu kasi ke cowo lain"</p>
-            <button id="btn-restart-yes"
-                class="btn-retro bg-green-500 text-white px-6 py-3 rounded-lg text-xs sm:text-sm w-full hover:bg-green-600 font-bold">RESTART</button>
+        <!-- Stage 3 Modal -->
+        <div id="modal-proposal"
+            class="absolute inset-0 bg-black/90 z-30 flex flex-col items-center justify-center hidden">
+            <div
+                class="bg-pink-100 text-pink-900 p-8 rounded-xl border-4 border-pink-500 max-w-sm text-center shadow-[0_0_50px_rgba(236,72,153,0.5)] relative">
+                <div class="text-5xl mb-6">🌹</div>
+                <h1 class="text-xl md:text-2xl text-pink-600 font-bold mb-2">Dear Chessa,</h1>
+                <h2 class="text-lg mb-4 text-pink-500 font-bold">I found this for you...</h2>
+                <p class="text-xs mb-8 leading-6">Will you be my Valentine?</p>
+
+                <div class="flex justify-center gap-8 relative h-12 w-full">
+                    <button id="btn-yes"
+                        class="btn-retro bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 text-xs transition-transform duration-200">YES!</button>
+                    <button id="btn-no"
+                        class="btn-retro bg-red-500 text-white px-6 py-2 rounded hover:bg-red-600 absolute right-8 text-xs transition-all duration-200">NO</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls"
+            class="absolute bottom-4 left-4 right-4 z-20 flex justify-between md:hidden opacity-60 hover:opacity-100 transition-opacity">
+            <div class="relative w-32 h-32">
+                <button id="btn-up"
+                    class="absolute top-0 left-10 w-12 h-12 bg-gray-800/80 rounded-t-lg border border-gray-500 text-lg">▲</button>
+                <button id="btn-down"
+                    class="absolute bottom-0 left-10 w-12 h-12 bg-gray-800/80 rounded-b-lg border border-gray-500 text-lg">▼</button>
+                <button id="btn-left"
+                    class="absolute left-0 top-10 w-12 h-12 bg-gray-800/80 rounded-l-lg border border-gray-500 text-lg">◀</button>
+                <button id="btn-right"
+                    class="absolute right-0 top-10 w-12 h-12 bg-gray-800/80 rounded-r-lg border border-gray-500 text-lg">▶</button>
+            </div>
+            <button id="btn-action"
+                class="w-20 h-20 bg-red-600/90 rounded-full border-4 border-red-800 text-white shadow-lg active:bg-red-700 text-xl font-bold">A</button>
         </div>
     </div>
 
     <script>
-        const CW = 480, CH = 300, SPEED = 2.5;
+        /** CONFIG & CONSTANTS **/
+        const CANVAS_WIDTH = 480;
+        const CANVAS_HEIGHT = 300;
+        const SPEED = 2.5;
+
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        canvas.width = CW; canvas.height = CH;
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
 
+        // State
         let state = {
-            currentStage: 1, dialogueActive: false, choiceActive: false, gameFailed: false,
+            currentStage: 1,
+            dialogueActive: false,
+            choiceActive: false,
+            gameFailed: false,
             inventory: { hasYellowFlower: false, hasRedFlower: false },
-            isTransitioning: false, time: 0, started: false
+            isTransitioning: false,
+            time: 0
         };
-        const keys = { w: false, a: false, s: false, d: false, space: false };
-        let player, objects = [], particles = [], fxParticles = [];
 
-        /* ── Drawing Helpers ── */
-        function drawCircle(x, y, r, color, glow) {
-            ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        const keys = { w: false, a: false, s: false, d: false, space: false };
+
+        /** DRAWING HELPERS **/
+        function drawCircle(x, y, radius, color, shadowColor = null) {
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fillStyle = color;
-            if (glow) { ctx.shadowColor = glow; ctx.shadowBlur = 10; }
-            else ctx.shadowBlur = 0;
-            ctx.fill(); ctx.shadowBlur = 0;
+            if (shadowColor) {
+                ctx.shadowColor = shadowColor;
+                ctx.shadowBlur = 10;
+            } else {
+                ctx.shadowBlur = 0;
+            }
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.closePath();
         }
 
-        function drawCharacter(x, y, color, isMoving, dir, face = '#ffe0bd') {
-            const t = state.time, legOff = isMoving ? Math.sin(t / 80) * 4 : 0;
+        function drawCharacter(x, y, color, isMoving, direction, faceColor = '#ffe0bd') {
+            const time = state.time;
+            const legOffset = isMoving ? Math.sin(time / 80) * 4 : 0;
             ctx.fillStyle = '#1e293b';
-            ctx.beginPath(); ctx.arc(x + 10, y + 28 + legOff, 5, 0, Math.PI * 2); ctx.fill();
-            ctx.beginPath(); ctx.arc(x + 22, y + 28 - legOff, 5, 0, Math.PI * 2); ctx.fill();
-            const bob = isMoving ? Math.abs(Math.sin(t / 80)) * 2 : 0;
-            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.beginPath(); ctx.arc(x + 10, y + 28 + legOffset, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(x + 22, y + 28 - legOffset, 5, 0, Math.PI * 2); ctx.fill();
+
+            const bob = isMoving ? Math.abs(Math.sin(time / 80)) * 2 : 0;
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
             ctx.beginPath(); ctx.ellipse(x + 16, y + 32, 10, 3, 0, 0, Math.PI * 2); ctx.fill();
+
             drawCircle(x + 16, y + 16 - bob, 14, color);
-            let fx = x + 16 + (dir === 'left' ? -2 : dir === 'right' ? 2 : 0);
-            let fy = y + 14 - bob + (dir === 'up' ? -1 : dir === 'down' ? 1 : 0);
-            drawCircle(fx, fy, 8, face);
+
+            let faceX = x + 16, faceY = y + 14 - bob;
+            if (direction === 'left') faceX -= 2;
+            if (direction === 'right') faceX += 2;
+            if (direction === 'up') faceY -= 1;
+            if (direction === 'down') faceY += 1;
+
+            drawCircle(faceX, faceY, 8, faceColor);
+
             ctx.fillStyle = '#000';
-            let ex = dir === 'left' ? -3 : dir === 'right' ? 3 : 0;
-            let ey = dir === 'up' ? -2 : 0;
-            if (dir !== 'up') {
-                if (t % 3000 < 150) { ctx.fillRect(fx - 3 + ex, fy + ey, 2, 1); ctx.fillRect(fx + 3 + ex, fy + ey, 2, 1); }
-                else { ctx.beginPath(); ctx.arc(fx - 3 + ex, fy + ey, 1.5, 0, Math.PI * 2); ctx.arc(fx + 3 + ex, fy + ey, 1.5, 0, Math.PI * 2); ctx.fill(); }
-            }
-            // Show carried flower
-            if (state.inventory.hasYellowFlower && color === '#ec4899') {
-                drawFlower(x + (dir === 'left' ? -4 : 24), y - 4 - bob, '#facc15');
-            }
-            if (state.inventory.hasRedFlower && color === '#ec4899') {
-                drawFlower(x + (dir === 'left' ? -4 : 24), y - 4 - bob, '#ef4444');
+            let eyeOffsetX = 0, eyeOffsetY = 0;
+            if (direction === 'left') eyeOffsetX = -3;
+            if (direction === 'right') eyeOffsetX = 3;
+            if (direction === 'up') eyeOffsetY = -2;
+
+            if (direction !== 'up') {
+                if (time % 3000 < 150) {
+                    ctx.fillRect(faceX - 3 + eyeOffsetX, faceY + eyeOffsetY, 2, 1);
+                    ctx.fillRect(faceX + 3 + eyeOffsetX, faceY + eyeOffsetY, 2, 1);
+                } else {
+                    ctx.beginPath();
+                    ctx.arc(faceX - 3 + eyeOffsetX, faceY + eyeOffsetY, 1.5, 0, Math.PI * 2);
+                    ctx.arc(faceX + 3 + eyeOffsetX, faceY + eyeOffsetY, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
         }
 
         function drawTree(x, y) {
-            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.beginPath(); ctx.ellipse(x + 16, y + 36, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = '#5d4037'; ctx.fillRect(x + 12, y + 20, 8, 16);
             drawCircle(x + 16, y + 18, 14, '#15803d');
@@ -529,36 +258,28 @@
             drawCircle(x + 16, y + 8, 10, '#22c55e');
         }
 
-        function drawFlower(x, y, petal) {
+        function drawFlower(x, y, petalColor) {
             const sway = Math.sin(state.time / 300) * 2;
             ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(x + 8, y + 16); ctx.quadraticCurveTo(x + 8 + sway, y + 8, x + 8, y); ctx.stroke();
-            drawCircle(x + 8 + sway, y, 4, petal, petal);
+            drawCircle(x + 8 + sway, y, 4, petalColor, petalColor);
             ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x + 8 + sway, y, 1.5, 0, Math.PI * 2); ctx.fill();
         }
 
-        function spawnFx(x, y, color, count = 5) {
-            for (let i = 0; i < count; i++) fxParticles.push({
-                x, y, vx: (Math.random() - 0.5) * 3, vy: -Math.random() * 2 - 1,
-                life: 30 + Math.random() * 20, maxLife: 50, color, size: 2 + Math.random() * 2
-            });
-        }
-
-        /* ── Entities ── */
+        /** ENTITIES **/
         class GameObject {
-            constructor(x, y, w, h, type) {
-                this.x = x; this.y = y; this.width = w; this.height = h;
-                this.type = type; this.markedForDeletion = false; this.interactable = false; this.direction = 'down';
+            constructor(x, y, width, height, type) {
+                this.x = x; this.y = y; this.width = width; this.height = height;
+                this.type = type; this.markedForDeletion = false; this.interactable = false;
+                this.direction = 'down';
             }
             draw() {
                 switch (this.type) {
-                    case 'player': drawCharacter(this.x, this.y, '#ec4899', this.isMoving, this.direction); break;
-                    case 'npc': drawCharacter(this.x, this.y, '#3b82f6', false, 'left'); break;
+                    case 'player': drawCharacter(this.x, this.y, '#ec4899', this.isMoving, this.direction); break; // Pink Player
+                    case 'npc': drawCharacter(this.x, this.y, '#3b82f6', false, 'left'); break; // Blue Stranger
                     case 'flowerY': drawFlower(this.x, this.y, '#facc15'); break;
-                    case 'flowerR':
-                        drawFlower(this.x, this.y, '#ef4444');
-                        if (state.time % 600 < 300) { ctx.fillStyle = '#fff'; ctx.font = '10px serif'; ctx.fillText('✨', this.x, this.y - 10); }
-                        break;
+                    case 'flowerR': drawFlower(this.x, this.y, '#ef4444');
+                        if (state.time % 1000 < 500) { ctx.fillStyle = 'white'; ctx.font = '10px serif'; ctx.fillText('✨', this.x, this.y - 10); } break;
                     case 'tree': drawTree(this.x, this.y - 10); break;
                 }
             }
@@ -572,140 +293,161 @@
             constructor(x, y) { super(x, y, 32, 32, 'player'); this.isMoving = false; }
             update() {
                 if (state.dialogueActive || state.isTransitioning || state.gameFailed || state.choiceActive) return;
+
                 let dx = 0, dy = 0;
                 if (keys.w) { dy = -SPEED; this.direction = 'up'; }
                 if (keys.s) { dy = SPEED; this.direction = 'down'; }
                 if (keys.a) { dx = -SPEED; this.direction = 'left'; }
                 if (keys.d) { dx = SPEED; this.direction = 'right'; }
+
                 this.isMoving = (dx !== 0 || dy !== 0);
-                if (this.isMoving && state.time % 120 < 16) spawnFx(this.x + 16, this.y + 30, '#86efac', 1);
+
                 if (!checkCollision(this.x + dx, this.y)) this.x += dx;
                 if (!checkCollision(this.x, this.y + dy)) this.y += dy;
-                this.x = Math.max(0, Math.min(CW - 32, this.x));
-                this.y = Math.max(0, Math.min(CH - 32, this.y));
+
+                this.x = Math.max(0, Math.min(CANVAS_WIDTH - 32, this.x));
+                this.y = Math.max(0, Math.min(CANVAS_HEIGHT - 32, this.y));
             }
         }
 
-        function genGrass() {
+        let player;
+        let objects = [];
+        let particles = [];
+
+        function generateGrassParticles() {
             particles = [];
-            for (let i = 0; i < 50; i++) particles.push({ x: Math.random() * CW, y: Math.random() * CH, type: Math.random() > 0.8 ? 'f' : 'g' });
+            for (let i = 0; i < 40; i++) particles.push({ x: Math.random() * CANVAS_WIDTH, y: Math.random() * CANVAS_HEIGHT, type: Math.random() > 0.8 ? 'flower' : 'grass' });
         }
 
         function drawMap() {
-            // Sky-like gradient for ground
-            const g = ctx.createLinearGradient(0, 0, 0, CH);
-            g.addColorStop(0, '#4ade80'); g.addColorStop(1, '#22c55e');
-            ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
+            ctx.fillStyle = '#4ade80'; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             ctx.fillStyle = '#d6cd96';
             if (state.currentStage === 1) {
-                ctx.beginPath(); ctx.ellipse(CW - 64, 116, 50, 30, 0, 0, Math.PI * 2);
+                ctx.beginPath(); ctx.ellipse(CANVAS_WIDTH - 64, 116, 50, 30, 0, 0, Math.PI * 2);
                 ctx.ellipse(80, 116, 40, 20, 0, 0, Math.PI * 2); ctx.fill();
             } else if (state.currentStage === 2) {
                 ctx.beginPath(); ctx.moveTo(30, 116); ctx.bezierCurveTo(100, 116, 100, 50, 200, 50);
                 ctx.bezierCurveTo(300, 50, 300, 250, 400, 250); ctx.lineWidth = 40; ctx.strokeStyle = '#d6cd96'; ctx.stroke();
             }
             particles.forEach(p => {
-                if (p.type === 'g') { ctx.fillStyle = '#22c55e'; ctx.fillRect(p.x, p.y, 2, 4); }
+                if (p.type === 'grass') { ctx.fillStyle = '#22c55e'; ctx.fillRect(p.x, p.y, 2, 4); }
                 else { ctx.fillStyle = '#86efac'; ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI * 2); ctx.fill(); }
             });
         }
 
-        /* ── Stages ── */
+        /** GAME LOGIC **/
         function resetGame() {
-            state = {
-                currentStage: 1, dialogueActive: false, choiceActive: false, gameFailed: false,
-                inventory: { hasYellowFlower: false, hasRedFlower: false }, isTransitioning: false, time: 0, started: true
-            };
+            state = { currentStage: 1, dialogueActive: false, choiceActive: false, gameFailed: false, inventory: { hasYellowFlower: false, hasRedFlower: false }, isTransitioning: false, time: 0 };
             document.getElementById('choice-container').classList.add('hidden');
             document.getElementById('interaction-choice').classList.add('hidden');
             initStage1();
         }
 
-        function showChoice(yesCb, noCb) {
+        function showChoice(yesCallback, noCallback) {
             state.choiceActive = true;
             const ui = document.getElementById('interaction-choice');
-            const yb = document.getElementById('btn-choice-yes'), nb = document.getElementById('btn-choice-no');
+            const yesBtn = document.getElementById('btn-choice-yes');
+            const noBtn = document.getElementById('btn-choice-no');
+
             ui.classList.remove('hidden');
-            const ny = yb.cloneNode(true), nn = nb.cloneNode(true);
-            yb.parentNode.replaceChild(ny, yb); nb.parentNode.replaceChild(nn, nb);
-            ny.addEventListener('click', () => { ui.classList.add('hidden'); state.choiceActive = false; yesCb(); });
-            nn.addEventListener('click', () => { ui.classList.add('hidden'); state.choiceActive = false; noCb(); });
+
+            const newYes = yesBtn.cloneNode(true);
+            const newNo = noBtn.cloneNode(true);
+            yesBtn.parentNode.replaceChild(newYes, yesBtn);
+            noBtn.parentNode.replaceChild(newNo, noBtn);
+
+            newYes.addEventListener('click', () => {
+                ui.classList.add('hidden');
+                state.choiceActive = false;
+                yesCallback();
+            });
+            newNo.addEventListener('click', () => {
+                ui.classList.add('hidden');
+                state.choiceActive = false;
+                noCallback();
+            });
         }
 
         function initStage1() {
-            player = new Player(CW / 2 - 16, CH / 2 - 16); objects = []; genGrass();
-            updateHUD();
-            const npc = new GameObject(CW - 80, 100, 32, 32, 'npc');
+            player = new Player(CANVAS_WIDTH / 2 - 16, CANVAS_HEIGHT / 2 - 16);
+            objects = [];
+            generateGrassParticles();
+
+            const npc = new GameObject(CANVAS_WIDTH - 80, 100, 32, 32, 'npc');
             npc.interactable = true;
             npc.onInteract = () => {
                 if (state.inventory.hasYellowFlower) {
                     showDialogue("Stranger: Is that a yellow flower for me?", () => {
                         showChoice(
-                            () => {
-                                showDialogue("Stranger: *Cough* *Sneeze*\nOh no! I'm allergic!\n(Mission Failed)", () => {
-                                    state.gameFailed = true; document.getElementById('choice-container').classList.remove('hidden');
+                            () => { // YES
+                                showDialogue("Stranger: *Cough* *Sneeze* Oh no! I'm allergic! (Mission Failed)", () => {
+                                    state.gameFailed = true;
+                                    document.getElementById('choice-container').classList.remove('hidden');
                                 });
                             },
-                            () => {
-                                showDialogue("Stranger: Good call. I'm actually allergic to those.", () => {
-                                    showDialogue("Stranger: You're thoughtful.\nYou may pass.", () => {
-                                        npc.markedForDeletion = true; transitionToStage(2);
+                            () => { // NO
+                                showDialogue("Stranger: You decided to keep it? Good. I'm actually allergic to those.", () => {
+                                    showDialogue("Stranger: You are thoughtful. You may pass.", () => {
+                                        npc.markedForDeletion = true;
+                                        transitionToStage(2);
                                     });
                                 });
                             }
                         );
                     });
                 } else {
-                    showDialogue("Stranger: You look kind.\nPlease, go ahead.", () => { npc.markedForDeletion = true; transitionToStage(2); });
+                    showDialogue("Stranger: You look kind. Please, go ahead.", () => {
+                        npc.markedForDeletion = true;
+                        transitionToStage(2);
+                    });
                 }
             };
             objects.push(npc);
+
             const flower = new GameObject(60, 100, 16, 16, 'flowerY');
             flower.interactable = true;
             flower.onInteract = () => {
-                state.inventory.hasYellowFlower = true; flower.markedForDeletion = true;
-                spawnFx(flower.x + 8, flower.y, '#facc15', 8);
-                showDialogue("You picked a Yellow Flower!\n(It looks dusty...)");
-                updateHUD();
+                state.inventory.hasYellowFlower = true;
+                flower.markedForDeletion = true;
+                showDialogue("You picked a Yellow Flower! (It looks dusty...)");
             };
             objects.push(flower);
-            addBorderTrees();
+
+            createBorderTrees();
         }
 
         function initStage2() {
-            player.x = 30; player.y = 100; objects = []; genGrass(); updateHUD();
+            player.x = 30; player.y = 100; objects = []; generateGrassParticles();
             for (let i = 0; i < 10; i++) {
-                objects.push(new GameObject(150 + i * 10, i * 15, 32, 32, 'tree'));
-                objects.push(new GameObject(250 - i * 5, 300 - i * 15, 32, 32, 'tree'));
+                objects.push(new GameObject(150 + (i * 10), 0 + (i * 15), 32, 32, 'tree'));
+                objects.push(new GameObject(250 - (i * 5), 300 - (i * 15), 32, 32, 'tree'));
             }
             objects.push(new GameObject(100, 200, 32, 32, 'tree'));
             objects.push(new GameObject(350, 50, 32, 32, 'tree'));
-            const rose = new GameObject(CW - 60, CH - 60, 16, 16, 'flowerR');
+
+            const rose = new GameObject(CANVAS_WIDTH - 60, CANVAS_HEIGHT - 60, 16, 16, 'flowerR');
             rose.interactable = true;
             rose.onInteract = () => {
                 state.inventory.hasRedFlower = true;
-                spawnFx(rose.x + 8, rose.y, '#ef4444', 10);
-                showDialogue("This Red Rose is perfect. 🌹", () => { transitionToStage(3); });
-                updateHUD();
+                showDialogue("This Red Rose is perfect.", () => { transitionToStage(3); });
             };
             objects.push(rose);
-            addBorderTrees();
-            showDialogue("Find the Red Rose hidden\nin the forest...");
+            createBorderTrees();
         }
 
-        function addBorderTrees() {
-            for (let x = 0; x < CW; x += 30) {
+        function createBorderTrees() {
+            for (let x = 0; x < CANVAS_WIDTH; x += 30) {
                 objects.push(new GameObject(x, -10, 32, 32, 'tree'));
-                objects.push(new GameObject(x, CH - 20, 32, 32, 'tree'));
+                objects.push(new GameObject(x, CANVAS_HEIGHT - 20, 32, 32, 'tree'));
             }
         }
 
         function checkCollision(x, y) {
-            const f = { x: x + 10, y: y + 20, w: 12, h: 10 };
-            for (const o of objects) {
-                if (o.type === 'tree' || o.type === 'npc') {
-                    const b = o.getBounds();
-                    if (f.x < b.x + b.w && f.x + f.w > b.x && f.y < b.y + b.h && f.y + f.h > b.y) return true;
+            const feet = { x: x + 10, y: y + 20, w: 12, h: 10 };
+            for (let obj of objects) {
+                if (obj.type === 'tree' || obj.type === 'npc') {
+                    const b = obj.getBounds();
+                    if (feet.x < b.x + b.w && feet.x + feet.w > b.x && feet.y < b.y + b.h && feet.y + feet.h > b.y) return true;
                 }
             }
             return false;
@@ -714,115 +456,110 @@
         function handleInteraction() {
             if (state.dialogueActive || state.choiceActive) { advanceDialogue(); return; }
             if (state.gameFailed) return;
-            const px = player.x + 16, py = player.y + 16;
-            let closest = null, minD = 60;
-            for (const o of objects) {
-                if (o.interactable) {
-                    const d = Math.hypot(px - (o.x + 16), py - (o.y + 16));
-                    if (d < minD) { minD = d; closest = o; }
+
+            const pCenter = { x: player.x + 16, y: player.y + 16 };
+            let closest = null, minDist = 60;
+            for (let obj of objects) {
+                if (obj.interactable) {
+                    const dist = Math.hypot(pCenter.x - (obj.x + 16), pCenter.y - (obj.y + 16));
+                    if (dist < minDist) { minDist = dist; closest = obj; }
                 }
             }
-            if (closest?.onInteract) closest.onInteract();
+            if (closest && closest.onInteract) closest.onInteract();
         }
 
         function transitionToStage(num) {
-            state.isTransitioning = true; let a = 0;
+            state.isTransitioning = true;
+            let alpha = 0;
             const t = setInterval(() => {
-                ctx.fillStyle = `rgba(0,0,0,${a})`; ctx.fillRect(0, 0, CW, CH); a += 0.08;
-                if (a >= 1) {
+                ctx.fillStyle = `rgba(0,0,0,${alpha})`; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                alpha += 0.1;
+                if (alpha >= 1) {
                     clearInterval(t); state.currentStage = num;
                     if (num === 2) initStage2(); if (num === 3) initStage3();
-                    state.isTransitioning = false; updateHUD();
+                    state.isTransitioning = false;
                 }
-            }, 40);
+            }, 50);
         }
 
         function initStage3() { document.getElementById('modal-proposal').classList.remove('hidden'); }
 
-        function updateHUD() {
-            document.getElementById('hud-stage').textContent = 'STAGE ' + state.currentStage;
-            let inv = '';
-            if (state.inventory.hasYellowFlower) inv += '🌼 ';
-            if (state.inventory.hasRedFlower) inv += '🌹 ';
-            document.getElementById('hud-inventory').textContent = inv || '';
-        }
-
-        /* ── Dialogue ── */
+        /** DIALOGUE SYSTEM **/
         const diagUI = document.getElementById('dialogue-container');
         const diagText = document.getElementById('dialogue-text');
         const arrow = document.getElementById('dialogue-arrow');
-        let diagTimer, diagCallback, currentFullText = '';
+        let diagTimer, diagCallback;
+        let currentFullText = "";
 
         function showDialogue(text, cb) {
-            state.dialogueActive = true; diagCallback = cb; currentFullText = text;
-            diagUI.classList.remove('hidden'); arrow.classList.add('hidden'); diagText.textContent = '';
-            let i = 0; clearInterval(diagTimer);
+            state.dialogueActive = true;
+            diagCallback = cb;
+            currentFullText = text;
+            diagUI.classList.remove('hidden');
+            arrow.classList.add('hidden');
+            diagText.textContent = "";
+
+            let i = 0;
+            clearInterval(diagTimer);
             diagTimer = setInterval(() => {
-                diagText.textContent += text[i]; i++;
-                if (i >= text.length) { clearInterval(diagTimer); diagTimer = null; arrow.classList.remove('hidden'); }
-            }, 25);
+                diagText.textContent += text[i];
+                i++;
+                if (i >= text.length) {
+                    clearInterval(diagTimer);
+                    diagTimer = null;
+                    arrow.classList.remove('hidden');
+                }
+            }, 30);
         }
 
         function advanceDialogue() {
             if (state.choiceActive) return;
-            if (diagTimer !== null) { clearInterval(diagTimer); diagTimer = null; diagText.textContent = currentFullText; arrow.classList.remove('hidden'); return; }
-            state.dialogueActive = false; diagUI.classList.add('hidden');
+
+            if (diagTimer !== null) {
+                clearInterval(diagTimer);
+                diagTimer = null;
+                diagText.textContent = currentFullText;
+                arrow.classList.remove('hidden');
+                return;
+            }
+
+            state.dialogueActive = false;
+            diagUI.classList.add('hidden');
             if (diagCallback) diagCallback();
         }
 
-        /* ── Loop ── */
+        /** LOOP **/
         function update() {
             state.time += 16;
-            if (state.currentStage !== 3 && state.started) player.update();
-            // FX particles
-            fxParticles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life--; });
-            fxParticles = fxParticles.filter(p => p.life > 0);
-            // Interaction hint
+            if (state.currentStage !== 3) player.update();
+
             const hint = document.getElementById('interaction-hint');
             let show = false;
-            objects.forEach(o => { if (o.interactable && Math.hypot(player.x - o.x, player.y - o.y) < 50) show = true; });
+            objects.forEach(o => {
+                if (o.interactable && Math.hypot(player.x - o.x, player.y - o.y) < 50) show = true;
+            });
             if (show && !state.dialogueActive && !state.gameFailed && !state.choiceActive) hint.classList.remove('hidden');
             else hint.classList.add('hidden');
         }
 
         function draw() {
-            ctx.clearRect(0, 0, CW, CH);
-            if (!state.started) { drawTitleCanvas(); return; }
+            ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
             drawMap();
             const all = [...objects, player];
             all.sort((a, b) => (a.y + a.height) - (b.y + b.height));
             all.forEach(o => { if (!o.markedForDeletion) o.draw(); });
-            // Draw FX
-            fxParticles.forEach(p => {
-                ctx.globalAlpha = p.life / p.maxLife;
-                ctx.fillStyle = p.color;
-                ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2); ctx.fill();
-            });
-            ctx.globalAlpha = 1;
-        }
-
-        function drawTitleCanvas() {
-            const g = ctx.createLinearGradient(0, 0, 0, CH);
-            g.addColorStop(0, '#1e1030'); g.addColorStop(1, '#0f0a1a');
-            ctx.fillStyle = g; ctx.fillRect(0, 0, CW, CH);
-            // Twinkling stars
-            for (let i = 0; i < 30; i++) {
-                const sx = (i * 97 + 13) % CW, sy = (i * 53 + 7) % CH;
-                ctx.fillStyle = `rgba(255,255,255,${0.3 + 0.3 * Math.sin(state.time / 500 + i)})`;
-                ctx.beginPath(); ctx.arc(sx, sy, 1, 0, Math.PI * 2); ctx.fill();
-            }
         }
 
         function loop() { update(); draw(); requestAnimationFrame(loop); }
 
-        /* ── Inputs ── */
+        /** INPUTS **/
         window.addEventListener('keydown', e => {
             if (e.repeat) return;
             if (e.key === 'w' || e.key === 'ArrowUp') keys.w = true;
             if (e.key === 's' || e.key === 'ArrowDown') keys.s = true;
             if (e.key === 'a' || e.key === 'ArrowLeft') keys.a = true;
             if (e.key === 'd' || e.key === 'ArrowRight') keys.d = true;
-            if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); handleInteraction(); }
+            if (e.key === ' ' || e.key === 'Enter') handleInteraction();
         });
         window.addEventListener('keyup', e => {
             if (e.key === 'w' || e.key === 'ArrowUp') keys.w = false;
@@ -833,34 +570,19 @@
 
         const bindBtn = (id, k) => {
             const b = document.getElementById(id);
-            b.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; }, { passive: false });
-            b.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; }, { passive: false });
+            b.addEventListener('touchstart', e => { e.preventDefault(); keys[k] = true; });
+            b.addEventListener('touchend', e => { e.preventDefault(); keys[k] = false; });
             b.addEventListener('mousedown', () => keys[k] = true);
             b.addEventListener('mouseup', () => keys[k] = false);
         };
         bindBtn('btn-up', 'w'); bindBtn('btn-down', 's'); bindBtn('btn-left', 'a'); bindBtn('btn-right', 'd');
         const act = document.getElementById('btn-action');
-        act.addEventListener('touchstart', e => { e.preventDefault(); handleInteraction(); }, { passive: false });
+        act.addEventListener('touchstart', e => { e.preventDefault(); handleInteraction(); });
         act.addEventListener('click', handleInteraction);
 
         document.getElementById('btn-restart-yes').addEventListener('click', resetGame);
 
-        /* Title Screen */
-        document.getElementById('btn-start').addEventListener('click', () => {
-            document.getElementById('title-screen').classList.add('hidden');
-            state.started = true; initStage1();
-        });
-        // Also allow Space/Enter to start
-        window.addEventListener('keydown', function startHandler(e) {
-            if (!state.started && (e.key === ' ' || e.key === 'Enter')) {
-                e.preventDefault();
-                document.getElementById('title-screen').classList.add('hidden');
-                state.started = true; initStage1();
-                window.removeEventListener('keydown', startHandler);
-            }
-        });
-
-        /* ── Ending Logic ── */
+        // ENDING LOGIC: 5-Stage No Button
         const btnNo = document.getElementById('btn-no');
         const btnYes = document.getElementById('btn-yes');
         let noClickCount = 0;
@@ -868,51 +590,79 @@
         const handleNoInteraction = (e) => {
             if (e.type === 'touchstart') e.preventDefault();
             noClickCount++;
-            const s = parseFloat(btnYes.style.transform?.replace('scale(', '')) || 1;
-            btnYes.style.transform = `scale(${s + 0.35})`;
-            if (noClickCount >= 5) { btnNo.style.display = 'none'; }
-            else {
+
+            const s = parseFloat(btnYes.style.transform.replace('scale(', '')) || 1;
+            btnYes.style.transform = `scale(${s + 0.4})`;
+
+            if (noClickCount >= 5) {
+                btnNo.style.display = 'none';
+            } else {
                 const modal = document.getElementById('modal-proposal');
-                if (btnNo.parentNode !== modal) { modal.appendChild(btnNo); btnNo.style.position = 'absolute'; }
+
+                if (btnNo.parentNode !== modal) {
+                    modal.appendChild(btnNo);
+                    btnNo.style.position = 'absolute';
+                }
+
                 const rect = modal.getBoundingClientRect();
-                const corners = [{ x: 20, y: 20 }, { x: rect.width - 100, y: 20 },
-                { x: 20, y: rect.height - 60 }, { x: rect.width - 100, y: rect.height - 60 }];
-                const c = corners[Math.floor(Math.random() * corners.length)];
-                btnNo.style.left = (c.x + (Math.random() * 40 - 20)) + 'px';
-                btnNo.style.top = (c.y + (Math.random() * 40 - 20)) + 'px';
-                btnNo.style.opacity = (1 - noClickCount * 0.15);
-                btnNo.style.transform = `scale(${1 - noClickCount * 0.1})`;
-                btnNo.innerText = ["Sure?", "Really?", "Pls?", "Last Try!"][noClickCount - 1] || "No";
+                const btnW = 80;
+                const btnH = 40;
+
+                const corners = [
+                    { x: 20, y: 20 },
+                    { x: rect.width - btnW - 40, y: 20 },
+                    { x: 20, y: rect.height - btnH - 40 },
+                    { x: rect.width - btnW - 40, y: rect.height - btnH - 40 }
+                ];
+
+                const randomCorner = corners[Math.floor(Math.random() * corners.length)];
+
+                const jitterX = (Math.random() * 40) - 20;
+                const jitterY = (Math.random() * 40) - 20;
+
+                btnNo.style.left = (randomCorner.x + jitterX) + 'px';
+                btnNo.style.top = (randomCorner.y + jitterY) + 'px';
+
+                btnNo.style.opacity = (1 - (noClickCount * 0.15));
+                btnNo.style.transform = `scale(${1 - (noClickCount * 0.1)})`;
+
+                const texts = ["Sure?", "Really?", "Pls?", "Last Try!"];
+                btnNo.innerText = texts[noClickCount - 1] || "No";
             }
         };
-        btnNo.addEventListener('touchstart', handleNoInteraction, { passive: false });
+
+        btnNo.addEventListener('touchstart', handleNoInteraction);
         btnNo.addEventListener('click', handleNoInteraction);
 
         btnYes.addEventListener('click', () => {
+            // Hide the game wrapper completely
             document.getElementById('game-wrapper').style.display = 'none';
-            document.getElementById('mobile-controls').style.display = 'none';
-            const cel = document.createElement('div');
-            cel.className = 'fixed inset-0 flex flex-col items-center justify-center z-50';
-            cel.style.background = 'radial-gradient(ellipse at center, #fce7f3, #fdf2f8)';
-            cel.innerHTML = `<div class="text-center px-6 flex flex-col items-center">
-                <h1 style="font-size:clamp(20px,6vw,48px);color:#ec4899;font-weight:bold;margin-bottom:16px;text-shadow:0 0 20px rgba(236,72,153,0.5);">HAPPY VALENTINE'S!</h1>
-                <p style="font-size:clamp(12px,3vw,24px);color:#9d174d;margin-bottom:8px;">Yay! I knew you would say yes!</p>
-                <p style="font-size:clamp(10px,2.5vw,20px);color:#be185d;margin-bottom:24px;">You made me the happiest ❤️</p>
-                <img src="https://media1.tenor.com/m/o_5RQarGvJ0AAAAC/kiss.gif" alt="Kissing"
-                    style="border-radius:12px;border:3px solid #f9a8d4;max-width:280px;width:80%;box-shadow:0 0 30px rgba(236,72,153,0.3);">
-            </div>`;
-            document.body.appendChild(cel);
+
+            // Create Full Screen Celebration Container
+            const celebrationContainer = document.createElement('div');
+            celebrationContainer.className = 'fixed inset-0 flex flex-col items-center justify-center z-50 bg-[#fce7f3]';
+            celebrationContainer.innerHTML = `
+                <div class="text-center px-4 flex flex-col items-center">
+                    <h1 class="text-4xl md:text-6xl text-pink-600 font-bold mb-6 drop-shadow-md">HAPPY VALENTINE'S!</h1>
+                    <p class="text-xl md:text-3xl mb-4 text-pink-800 font-semibold">Yay! I knew you would say yes!</p>
+                    <p class="text-lg md:text-2xl text-pink-800 mb-8">You made me the happiest ❤️</p>
+                    <img src="https://media1.tenor.com/m/o_5RQarGvJ0AAAAC/kiss.gif" alt="Kissing" class="rounded-xl shadow-2xl border-4 border-pink-400 w-64 mx-auto">
+                </div>
+            `;
+            document.body.appendChild(celebrationContainer);
+
+            // Confetti
             const end = Date.now() + 5000;
             (function frame() {
-                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ec4899', '#a855f7', '#f472b6'] });
-                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ec4899', '#a855f7', '#f472b6'] });
+                confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors: ['#ec4899'] });
+                confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors: ['#ec4899'] });
                 if (Date.now() < end) requestAnimationFrame(frame);
             }());
         });
 
-        // Initialize loop (title screen renders via drawTitleCanvas)
-        player = new Player(CW / 2, CH / 2);
+        initStage1();
         loop();
+
     </script>
 </body>
 
