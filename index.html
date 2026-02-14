@@ -80,6 +80,8 @@
 </head>
 
 <body class="h-screen w-screen flex items-center justify-center bg-gray-900 text-white relative">
+    <audio id="bgm" src="bgm.mp3" loop></audio>
+
 
     <div id="game-wrapper"
         class="relative w-full max-w-2xl aspect-video bg-black rounded-xl overflow-hidden border-4 border-gray-700 shadow-2xl">
@@ -169,6 +171,80 @@
     </div>
 
     <script>
+        /** SOUND SYSTEM **/
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        const SoundManager = {
+            init: () => {
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const bgm = document.getElementById('bgm');
+                if (bgm && bgm.paused) {
+                    bgm.play().catch(e => console.log("Audio play failed (user interaction needed first):", e));
+                }
+            },
+            playTone: (freq, type, duration, vol = 0.1) => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            },
+            playInteract: () => {
+                SoundManager.playTone(600, 'square', 0.1);
+                setTimeout(() => SoundManager.playTone(800, 'square', 0.1), 50);
+            },
+            playBlip: () => {
+                SoundManager.playTone(1200, 'sine', 0.05, 0.05);
+            },
+            playStep: () => {
+                // Optional: subtle noise
+            },
+            playWin: () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                let time = audioCtx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.1, time + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.001, time + i * 0.1 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(time + i * 0.1);
+                    osc.stop(time + i * 0.1 + 0.3);
+                });
+            },
+            playLose: () => {
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 1.0);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 1.0);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 1.0);
+            }
+        };
+
+        // User Interaction to unlock Audio
+        window.addEventListener('click', SoundManager.init, { once: true });
+        window.addEventListener('keydown', SoundManager.init, { once: true });
+        window.addEventListener('touchstart', SoundManager.init, { once: true });
+
         /** CONFIG & CONSTANTS **/
         const CANVAS_WIDTH = 480;
         const CANVAS_HEIGHT = 300;
@@ -337,6 +413,7 @@
 
         /** GAME LOGIC **/
         function resetGame() {
+            SoundManager.playInteract();
             state = { currentStage: 1, dialogueActive: false, choiceActive: false, gameFailed: false, inventory: { hasYellowFlower: false, hasRedFlower: false }, isTransitioning: false, time: 0 };
             document.getElementById('choice-container').classList.add('hidden');
             document.getElementById('interaction-choice').classList.add('hidden');
@@ -345,6 +422,7 @@
 
         function showChoice(yesCallback, noCallback) {
             state.choiceActive = true;
+            SoundManager.playInteract();
             const ui = document.getElementById('interaction-choice');
             const yesBtn = document.getElementById('btn-choice-yes');
             const noBtn = document.getElementById('btn-choice-no');
@@ -357,11 +435,13 @@
             noBtn.parentNode.replaceChild(newNo, noBtn);
 
             newYes.addEventListener('click', () => {
+                SoundManager.playInteract();
                 ui.classList.add('hidden');
                 state.choiceActive = false;
                 yesCallback();
             });
             newNo.addEventListener('click', () => {
+                SoundManager.playInteract();
                 ui.classList.add('hidden');
                 state.choiceActive = false;
                 noCallback();
@@ -382,6 +462,7 @@
                             () => { // YES
                                 showDialogue("Stranger: *Cough* *Sneeze* Oh no! I'm allergic! (Mission Failed)", () => {
                                     state.gameFailed = true;
+                                    SoundManager.playLose();
                                     document.getElementById('choice-container').classList.remove('hidden');
                                 });
                             },
@@ -409,6 +490,7 @@
             flower.onInteract = () => {
                 state.inventory.hasYellowFlower = true;
                 flower.markedForDeletion = true;
+                SoundManager.playWin();
                 showDialogue("You picked a Yellow Flower! (It looks dusty...)");
             };
             objects.push(flower);
@@ -429,6 +511,7 @@
             rose.interactable = true;
             rose.onInteract = () => {
                 state.inventory.hasRedFlower = true;
+                SoundManager.playWin();
                 showDialogue("This Red Rose is perfect.", () => { transitionToStage(3); });
             };
             objects.push(rose);
@@ -465,12 +548,16 @@
                     if (dist < minDist) { minDist = dist; closest = obj; }
                 }
             }
-            if (closest && closest.onInteract) closest.onInteract();
+            if (closest && closest.onInteract) {
+                SoundManager.playInteract();
+                closest.onInteract();
+            }
         }
 
         function transitionToStage(num) {
             state.isTransitioning = true;
             let alpha = 0;
+            SoundManager.playInteract();
             const t = setInterval(() => {
                 ctx.fillStyle = `rgba(0,0,0,${alpha})`; ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                 alpha += 0.1;
@@ -503,6 +590,7 @@
             clearInterval(diagTimer);
             diagTimer = setInterval(() => {
                 diagText.textContent += text[i];
+                if (i % 2 === 0) SoundManager.playBlip();
                 i++;
                 if (i >= text.length) {
                     clearInterval(diagTimer);
@@ -524,6 +612,7 @@
             }
 
             state.dialogueActive = false;
+            SoundManager.playInteract();
             diagUI.classList.add('hidden');
             if (diagCallback) diagCallback();
         }
@@ -589,6 +678,7 @@
 
         const handleNoInteraction = (e) => {
             if (e.type === 'touchstart') e.preventDefault();
+            SoundManager.playLose();
             noClickCount++;
 
             const s = parseFloat(btnYes.style.transform.replace('scale(', '')) || 1;
@@ -635,6 +725,8 @@
         btnNo.addEventListener('click', handleNoInteraction);
 
         btnYes.addEventListener('click', () => {
+            SoundManager.playWin();
+            SoundManager.playWin();
             // Hide the game wrapper completely
             document.getElementById('game-wrapper').style.display = 'none';
 
